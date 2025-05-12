@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NULL² 雪煙エフェクト（静止画背景＋ランダム雪）</title>
+  <title>NULL² 雪煙エフェクト（風対応）</title>
   <style>
     body {
       margin: 0;
@@ -78,6 +78,9 @@
 
       const snowParticles = [];
 
+      let windVector = new THREE.Vector3(0, 0, 0);
+      let windTimer = 0;
+
       function randomDirectionVector(speed = 2.5) {
         const theta = Math.random() * 2 * Math.PI;
         const phi = Math.acos(2 * Math.random() - 1);
@@ -125,6 +128,15 @@
         requestAnimationFrame(animate);
         const delta = 0.016;
 
+        // 💨 ランダム風の変化（4秒ごと）
+        windTimer += delta;
+        if (windTimer >= 4.0) {
+          windTimer = 0;
+          const angle = Math.random() * 2 * Math.PI;
+          const strength = Math.random() * 0.5;
+          windVector.set(Math.cos(angle) * strength, 0, Math.sin(angle) * strength);
+        }
+
         for (let i = snowParticles.length - 1; i >= 0; i--) {
           const p = snowParticles[i];
           p.userData.lifetime -= delta;
@@ -133,12 +145,15 @@
           const vel = p.userData.velocity;
 
           for (let j = 0; j < vel.length; j++) {
+            // 🌬 風を加える
+            vel[j].x += windVector.x * delta;
+            vel[j].z += windVector.z * delta;
+
             pos[j * 3 + 0] += vel[j].x * delta;
             pos[j * 3 + 1] += vel[j].y * delta;
             pos[j * 3 + 2] += vel[j].z * delta;
 
             vel[j].y -= 9.8 * delta * 0.15;
-            vel[j].x += Math.sin(performance.now() / 400 + j) * 0.002;
           }
 
           p.geometry.attributes.position.needsUpdate = true;
@@ -158,6 +173,7 @@
   </script>
 </body>
 </html>
+
 
 
 
