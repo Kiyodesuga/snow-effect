@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>NULL² 雪煙エフェクト（クリック位置修正済み）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NULL² 雪煙エフェクト</title>
   <style>
     body {
       margin: 0;
@@ -18,111 +19,135 @@
   </style>
 </head>
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
   <script>
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 10;
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
-
-    const textureLoader = new THREE.TextureLoader();
-    const snowTexture = textureLoader.load(
-      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/sprites/spark1.png'
-    );
-
-    const snowMaterial = new THREE.PointsMaterial({
-      map: snowTexture,
-      color: 0xffffff,
-      size: 0.3,
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending
-    });
-
-    const snowParticles = [];
-
-    function createSnowBurst(event) {
-      // クリック位置を正規化デバイス座標に変換
-      const mouse = new THREE.Vector2(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1
-      );
-
-      // レイキャストによってクリック位置の3D座標を取得
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-
-      // カメラの方向に5ユニット進んだ位置に雪粒を発生させる
-      const origin = raycaster.ray.origin.clone().add(
-        raycaster.ray.direction.clone().multiplyScalar(5)
-      );
-
-      const count = 1500;
-      const geometry = new THREE.BufferGeometry();
-      const positions = [];
-
-      for (let i = 0; i < count; i++) {
-        positions.push(origin.x, origin.y, origin.z);
+    function isWebGLAvailable() {
+      try {
+        const canvas = document.createElement("canvas");
+        return !!window.WebGLRenderingContext && !!canvas.getContext("webgl");
+      } catch (e) {
+        return false;
       }
-
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-
-      const points = new THREE.Points(geometry, snowMaterial);
-      points.userData = {
-        velocity: Array.from({ length: count }, () => new THREE.Vector3(
-          (Math.random() - 0.5) * 2,
-          Math.random() * 4 + 1,
-          (Math.random() - 0.5) * 2
-        )),
-        lifetime: 4.5
-      };
-
-      snowParticles.push(points);
-      scene.add(points);
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = 0.016;
-
-      for (let i = snowParticles.length - 1; i >= 0; i--) {
-        const p = snowParticles[i];
-        p.userData.lifetime -= delta;
-
-        const pos = p.geometry.attributes.position.array;
-        const vel = p.userData.velocity;
-
-        for (let j = 0; j < vel.length; j++) {
-          pos[j * 3 + 0] += vel[j].x * delta;
-          pos[j * 3 + 1] += vel[j].y * delta;
-          pos[j * 3 + 2] += vel[j].z * delta;
-
-          vel[j].y -= 9.8 * delta * 0.15;
-          vel[j].x += Math.sin(performance.now() / 400 + j) * 0.002;
-        }
-
-        p.geometry.attributes.position.needsUpdate = true;
-
-        if (p.userData.lifetime <= 0) {
-          scene.remove(p);
-          snowParticles.splice(i, 1);
-        }
-      }
-
-      renderer.render(scene, camera);
+    function isInsideAppBrowser() {
+      const ua = navigator.userAgent || navigator.vendor || "";
+      return /Twitter|Line|Instagram|FBAN|FBAV/.test(ua);
     }
 
-    window.addEventListener('click', createSnowBurst);
-    animate();
+    if (!isWebGLAvailable() || isInsideAppBrowser()) {
+      document.body.innerHTML = `
+        <div style="text-align: center; margin-top: 25%; font-size: 20px; color: white; background-color: rgba(0,0,0,0.6); padding: 20px;">
+          ❄️ この環境では雪が表示できません。<br><br>
+          <b>右上の「...」メニュー →「ブラウザで開く」</b><br>
+          または下のボタンからChrome/Safariで開いてください👇<br><br>
+          <a href="https://snow-effect.pages.dev/" target="_blank"
+             style="padding: 12px 24px; background: white; color: black; text-decoration: none; border-radius: 8px; font-weight: bold;">
+             ブラウザで開く
+          </a>
+        </div>
+      `;
+    } else {
+      // ↓ WebGL対応環境ならここから実行
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 10;
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+
+      const textureLoader = new THREE.TextureLoader();
+      const snowTexture = textureLoader.load(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/sprites/spark1.png'
+      );
+
+      const snowMaterial = new THREE.PointsMaterial({
+        map: snowTexture,
+        color: 0xffffff,
+        size: 0.3,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      const snowParticles = [];
+
+      function createSnowBurst(event) {
+        const mouse = new THREE.Vector2(
+          (event.clientX / window.innerWidth) * 2 - 1,
+          -(event.clientY / window.innerHeight) * 2 + 1
+        );
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        const origin = raycaster.ray.origin.clone().add(
+          raycaster.ray.direction.clone().multiplyScalar(5)
+        );
+
+        const count = 1500;
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+
+        for (let i = 0; i < count; i++) {
+          positions.push(origin.x, origin.y, origin.z);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+        const points = new THREE.Points(geometry, snowMaterial);
+        points.userData = {
+          velocity: Array.from({ length: count }, () => new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 4 + 1,
+            (Math.random() - 0.5) * 2
+          )),
+          lifetime: 4.5
+        };
+
+        snowParticles.push(points);
+        scene.add(points);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const delta = 0.016;
+
+        for (let i = snowParticles.length - 1; i >= 0; i--) {
+          const p = snowParticles[i];
+          p.userData.lifetime -= delta;
+
+          const pos = p.geometry.attributes.position.array;
+          const vel = p.userData.velocity;
+
+          for (let j = 0; j < vel.length; j++) {
+            pos[j * 3 + 0] += vel[j].x * delta;
+            pos[j * 3 + 1] += vel[j].y * delta;
+            pos[j * 3 + 2] += vel[j].z * delta;
+
+            vel[j].y -= 9.8 * delta * 0.15;
+            vel[j].x += Math.sin(performance.now() / 400 + j) * 0.002;
+          }
+
+          p.geometry.attributes.position.needsUpdate = true;
+
+          if (p.userData.lifetime <= 0) {
+            scene.remove(p);
+            snowParticles.splice(i, 1);
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener('click', createSnowBurst);
+      animate();
+    }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
 </body>
 </html>
-
 
 
 
